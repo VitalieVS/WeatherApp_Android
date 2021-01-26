@@ -1,24 +1,33 @@
 package com.example.weatherapp
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Address
+import android.location.Geocoder
+import android.location.Location
+import android.location.LocationManager
 import android.os.AsyncTask
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import org.json.JSONObject
-import java.lang.Exception
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
 
+
 class MainActivity : AppCompatActivity() {
 
-    val CITY: String = "corlateni, md"
     val API: String = "5dfbc1c91fc61457629e0d4e30513742"
+    var geocoder: Geocoder? = null
+    lateinit var location: Array<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,11 +36,59 @@ class MainActivity : AppCompatActivity() {
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
 
         actionBar?.hide()
-        WeatherTask().execute()
+
+        location = getLastKnownLocation(this)
+
+        WeatherTask(location[0], location[1]).execute()
+
     }
 
+    fun getLastKnownLocation(context: Context): Array<String> {
+        val locationManager: LocationManager =
+            context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val providers: List<String> = locationManager.getProviders(true)
+        var location: Location? = null
+        var country = "Md"
+        var city = "Balti,"
+        for (i in providers.size - 1 downTo 0) {
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return arrayOf("Balti,", "md")
+            }
+            location = locationManager.getLastKnownLocation(providers[i])
+            if (location != null)
+                break
+        }
+        val gps = DoubleArray(2)
+        if (location != null) {
+            gps[0] = location.latitude
+            gps[1] = location.longitude
+            geocoder = Geocoder(this, Locale.getDefault())
+            val addresses: List<Address> = geocoder!!.getFromLocation(gps[0], gps[1], 1)
+
+            country = addresses[0].countryCode
+            city = addresses[0].locality
+
+        } else {
+            Log.d("myTag", "Error")
+        }
+
+        return arrayOf(city, country)
+
+    }
+
+
     @SuppressLint("StaticFieldLeak")
-    inner class WeatherTask() : AsyncTask<String, Void, String>() {
+    inner class WeatherTask(
+        private var CITY: String = "Balti",
+        private var COUNTRY: String = "Moldova"
+    ) : AsyncTask<String, Void, String>() {
         override fun onPreExecute() {
             super.onPreExecute()
             findViewById<ProgressBar>(R.id.loader).visibility = View.VISIBLE
@@ -41,7 +98,7 @@ class MainActivity : AppCompatActivity() {
 
         override fun doInBackground(vararg params: String?): String? {
             return try {
-                URL("https://api.openweathermap.org/data/2.5/weather?q=$CITY&units=metric&appid=$API")
+                URL("https://api.openweathermap.org/data/2.5/weather?q=$CITY,$COUNTRY&units=metric&appid=$API")
                     .readText(Charsets.UTF_8)
             } catch (e: Exception) {
                 null
@@ -75,7 +132,8 @@ class MainActivity : AppCompatActivity() {
                 findViewById<TextView>(R.id.address).text = address
                 findViewById<TextView>(R.id.city_label).text = address
                 findViewById<TextView>(R.id.updated_at).text = updatedAtText
-                findViewById<TextView>(R.id.status).text = weatherDescription.capitalize(Locale.ROOT)
+                findViewById<TextView>(R.id.status).text =
+                    weatherDescription.capitalize(Locale.ROOT)
                 findViewById<TextView>(R.id.temp).text = temp
                 findViewById<TextView>(R.id.temp_min).text = tempMin
                 findViewById<TextView>(R.id.temp_max).text = tempMax
@@ -89,8 +147,7 @@ class MainActivity : AppCompatActivity() {
 
                 findViewById<ProgressBar>(R.id.loader).visibility = View.GONE
                 findViewById<RelativeLayout>(R.id.mainContainer).visibility = View.VISIBLE
-            }
-            catch (e : Exception) {
+            } catch (e: Exception) {
                 findViewById<ProgressBar>(R.id.loader).visibility = View.GONE
                 findViewById<TextView>(R.id.errorText).visibility = View.VISIBLE
             }
@@ -98,6 +155,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun refresh(view: View) {
-        WeatherTask().execute()
+        location = getLastKnownLocation(this)
+
+        WeatherTask(location[0], location[1]).execute()
     }
 }
