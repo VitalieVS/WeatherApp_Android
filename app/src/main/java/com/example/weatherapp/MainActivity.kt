@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+
     fun getLastKnownLocation(context: Context): Array<String> {
         val locationManager: LocationManager =
             context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -80,9 +81,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         return arrayOf(city, country)
-
     }
-
 
     @SuppressLint("StaticFieldLeak")
     inner class WeatherTask(
@@ -155,6 +154,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun refresh(view: View) {
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
+
+        actionBar?.hide()
+
         location = getLastKnownLocation(this)
 
         WeatherTask(location[0], location[1]).execute()
