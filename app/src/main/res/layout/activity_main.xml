@@ -26,7 +26,7 @@
                 android:id="@+id/address"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Balti, MD"
+                android:text="Weather APP"
                 android:textSize="24dp" />
 
             <TextView
@@ -350,3 +350,4 @@
 
 
 </RelativeLayout>
+
